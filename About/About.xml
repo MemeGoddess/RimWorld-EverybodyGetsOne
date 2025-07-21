@@ -48,7 +48,8 @@
     </v1.6>
   </modDependenciesByVersion>
 	<loadAfter>
-		<li>Uuugggg.TDFindLib</li>
+		<li>Memegoddess.TDFindLib</li>
+		<li>falconne.BWM</li>
 	</loadAfter>
 	<modIconPath IgnoreIfNoMatchingField="True">TDEverybodyGetsOneIcon</modIconPath>
 </ModMetaData>

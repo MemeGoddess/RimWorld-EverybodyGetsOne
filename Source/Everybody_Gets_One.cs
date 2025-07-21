@@ -14,9 +14,6 @@ namespace Everybody_Gets_One
 		{
 			// initialize settings
 			// settings = GetSettings<Settings>();
-#if DEBUG
-			Harmony.DEBUG = true;
-#endif
 
 			Harmony harmony = new Harmony("Uuugggg.rimworld.Everybody_Gets_One.main");
 
