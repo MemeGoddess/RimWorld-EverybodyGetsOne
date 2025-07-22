@@ -29,7 +29,7 @@ jobs:
       - name: Build with dotnet build
         working-directory: mod
         run: |
-          dotnet build "Source/Everybody_Gets_one.csproj" --configuration Release
+          dotnet build "Source\Everybody_Gets_One.csproj" --configuration Release
           dotnet build "ImprovedWorkbenches\SupportImprovedWorkbenches.csproj" --configuration Release
 
       - name: Cleanup
