@@ -17,6 +17,8 @@ namespace Everybody_Gets_One
 		//cache these counts each update
 		public Dictionary<Bill_Production, QuerySearch> billPersonCounters = new();
 
+		public QuerySearch defaultQuerySearch;
+
 		public PersonCountWorldComp(World world) : base(world) { }
 
 		private List<Bill_Production> scribeBills;
@@ -71,27 +73,8 @@ namespace Everybody_Gets_One
 
 		public QuerySearch MakePersonCounter(Bill_Production bill)
 		{
-			QuerySearch search = new(bill.Map);
-			search.SetListType(SearchListType.Everyone, false);
-
-			ThingQueryBasicProperty queryColonist = ThingQueryMaker.MakeQuery<ThingQueryBasicProperty>();
-			queryColonist.sel = QueryPawnProperty.IsColonist;
-			search.Children.Add(queryColonist, remake: false);
-
-			ThingQueryBasicProperty querySlave = ThingQueryMaker.MakeQuery<ThingQueryBasicProperty>();
-			querySlave.sel = QueryPawnProperty.IsSlaveOfColony;
-			querySlave.include = false;
-			search.Children.Add(querySlave, remake: false);
-
-			ThingQueryQuest queryQuestLodger = ThingQueryMaker.MakeQuery<ThingQueryQuest>();
-			//Default is Quest Lodger
-			queryQuestLodger.include = false;
-			search.Children.Add(queryQuestLodger, remake: false);
-
-			search.name = "TD.PeopleForBill".Translate() + bill.LabelCap;
-
-			// Maybe don't immediately open it.
-			// Find.WindowStack.Add(new PersonCounterEditor(search));
+			defaultQuerySearch ??= CreateQuerySearch(bill.Map);
+			var search = defaultQuerySearch.CloneForUse([bill.Map], "TD.PeopleForBill".Translate() + bill.LabelCap);
 
 			return search;
 		}
@@ -127,6 +110,30 @@ namespace Everybody_Gets_One
 				if(billPersonCounter.Value.ChosenMaps.Contains(map))
 					billPersonCounter.Value.ChosenMaps.Remove(map);
 			}
+		}
+
+		private QuerySearch CreateQuerySearch(Map map)
+		{
+			QuerySearch search = new(map);
+			search.SetListType(SearchListType.Everyone, false);
+
+			ThingQueryBasicProperty queryColonist = ThingQueryMaker.MakeQuery<ThingQueryBasicProperty>();
+			queryColonist.sel = QueryPawnProperty.IsColonist;
+			search.Children.Add(queryColonist, remake: false);
+
+			ThingQueryBasicProperty querySlave = ThingQueryMaker.MakeQuery<ThingQueryBasicProperty>();
+			querySlave.sel = QueryPawnProperty.IsSlaveOfColony;
+			querySlave.include = false;
+			search.Children.Add(querySlave, remake: false);
+
+			ThingQueryQuest queryQuestLodger = ThingQueryMaker.MakeQuery<ThingQueryQuest>();
+			//Default is Quest Lodger
+			queryQuestLodger.include = false;
+			search.Children.Add(queryQuestLodger, remake: false);
+
+			search.name = "TD.PeopleForBill".Translate();
+
+			return search;
 		}
 	}
 
