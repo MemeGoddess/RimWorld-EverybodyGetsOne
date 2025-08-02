@@ -122,8 +122,14 @@ namespace Everybody_Gets_One
 
 		public void OrphanBills(Map map)
 		{
+			if (billPersonCounters == null)
+				return;
+
 			foreach (var billPersonCounter in billPersonCounters)
 			{
+				if(billPersonCounter.Value.ChosenMaps == null)
+					continue;
+
 				if(billPersonCounter.Value.ChosenMaps.Contains(map))
 					billPersonCounter.Value.ChosenMaps.Remove(map);
 			}
