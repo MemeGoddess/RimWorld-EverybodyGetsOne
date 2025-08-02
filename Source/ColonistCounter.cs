@@ -115,7 +115,7 @@ namespace Everybody_Gets_One
 			}
 			comp.billPersonCounters = new Dictionary<Bill_Production, QuerySearch>();
 			if (billCount > 0)
-				Verse.Log.Message($"[EverybodyGetsOne] Migrated {billCount} bill from {comp.map.Parent.Label}. You should only see this once ^.^");
+				Verse.Log.Message($"[EverybodyGetsOne] Migrated {billCount} bill(s) from {comp.map.Parent.Label}. You should only see this once ^.^");
 
 			Find.Maps.ForEach(map => map.components.Remove(comp));
 		}
