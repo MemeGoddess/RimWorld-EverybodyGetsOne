@@ -6,17 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using Verse;
 using HarmonyLib;
+using RimWorld.Planet;
 using UnityEngine;
 using TD_Find_Lib;
 
 namespace Everybody_Gets_One
 {
-	public class PersonCountMapComp : MapComponent
+	public class PersonCountWorldComp : WorldComponent
 	{
 		//cache these counts each update
 		public Dictionary<Bill_Production, QuerySearch> billPersonCounters = new();
 
-		public PersonCountMapComp(Map map) : base(map) { }
+		public PersonCountWorldComp(World world) : base(world) { }
 
 		private List<Bill_Production> scribeBills;
 		private List<QuerySearch> scribeSearches;
@@ -46,6 +47,10 @@ namespace Everybody_Gets_One
 				personCounter = MakePersonCounter(bill);
 				billPersonCounters[bill] = personCounter;
 			}
+
+			if(personCounter.MapType == SearchMapType.ChosenMaps && !personCounter.ChosenMaps.Any())
+				personCounter.ChosenMaps.Add(bill.Map);
+
 			return personCounter;
 		}
 
@@ -57,7 +62,7 @@ namespace Everybody_Gets_One
 
 		public int CountFor(Bill_Production bill)
 		{
-			QuerySearch personCounter = GetPersonCounter(bill);
+ 			QuerySearch personCounter = GetPersonCounter(bill);
 
 			personCounter.RemakeList();
 
@@ -66,7 +71,7 @@ namespace Everybody_Gets_One
 
 		public QuerySearch MakePersonCounter(Bill_Production bill)
 		{
-			QuerySearch search = new(map);
+			QuerySearch search = new(bill.Map);
 			search.SetListType(SearchListType.Everyone, false);
 
 			ThingQueryBasicProperty queryColonist = ThingQueryMaker.MakeQuery<ThingQueryBasicProperty>();
@@ -94,6 +99,58 @@ namespace Everybody_Gets_One
 		public void OpenPersonCounter(Bill_Production bill)
 		{
 			Find.WindowStack.Add(new PersonCounterEditor(GetPersonCounter(bill)));
+		}
+
+		public void IngestMapComponent(PersonCountMapComp comp)
+		{
+			var bills = comp.billPersonCounters;
+			var billCount = 0;
+			foreach (var querySearch in bills)
+			{
+				if (billPersonCounters.ContainsKey(querySearch.Key))
+					continue;
+
+				billPersonCounters[querySearch.Key] = querySearch.Value;
+				billCount++;
+			}
+			comp.billPersonCounters = new Dictionary<Bill_Production, QuerySearch>();
+			if (billCount > 0)
+				Verse.Log.Message($"[EverybodyGetsOne] Migrated {billCount} bill from {comp.map.Parent.Label}. You should only see this once ^.^");
+
+			Find.Maps.ForEach(map => map.components.Remove(comp));
+		}
+
+		public void OrphanBills(Map map)
+		{
+			foreach (var billPersonCounter in billPersonCounters)
+			{
+				if(billPersonCounter.Value.ChosenMaps.Contains(map))
+					billPersonCounter.Value.ChosenMaps.Remove(map);
+			}
+		}
+	}
+
+	public class PersonCountMapComp : MapComponent
+	{
+		//cache these counts each update
+		public Dictionary<Bill_Production, QuerySearch> billPersonCounters = new();
+
+		public override void FinalizeInit()
+		{
+			base.FinalizeInit();
+			var worldComp = Find.World.GetComponent<PersonCountWorldComp>();
+			worldComp.IngestMapComponent(this);
+		}
+
+		public PersonCountMapComp(Map map) : base(map) { }
+
+		private List<Bill_Production> scribeBills;
+		private List<QuerySearch> scribeSearches;
+		public override void ExposeData()
+		{
+			Scribe_Collections.Look(ref billPersonCounters, "billPersonCounters", LookMode.Reference, LookMode.Deep, ref scribeBills, ref scribeSearches);
+			if (billPersonCounters == null)
+				billPersonCounters = new();
 		}
 	}
 
@@ -154,26 +211,23 @@ namespace Everybody_Gets_One
 
 	public static class MapCompExtensions
 	{
-		public static int CurrentPersonCount(this Map map, Bill_Production bill) =>
-			map.GetComponent<PersonCountMapComp>().CountFor(bill);
+		public static int CurrentPersonCount(this Bill_Production bill) =>
+			Find.World.GetComponent<PersonCountWorldComp>().CountFor(bill);
 
-		public static void OpenPersonCounter(this Map map, Bill_Production bill) =>
-			map.GetComponent<PersonCountMapComp>().OpenPersonCounter(bill);
+		public static void OpenPersonCounter(this Bill_Production bill) =>
+			Find.World.GetComponent<PersonCountWorldComp>().OpenPersonCounter(bill);
 
-		public static bool HasPersonCounter(this Map map, Bill_Production bill) =>
-			map.GetComponent<PersonCountMapComp>().HasPersonCounter(bill);
-
-		public static QuerySearch GetPersonCounter(this Map map, Bill_Production bill) =>
-			map.GetComponent<PersonCountMapComp>().GetPersonCounter(bill);
+		public static bool HasPersonCounter(this Bill_Production bill) =>
+			Find.World.GetComponent<PersonCountWorldComp>().HasPersonCounter(bill);
 
 		public static QuerySearch GetPersonCounter(this Bill_Production bill) =>
-			bill.Map.GetComponent<PersonCountMapComp>().GetPersonCounter(bill);
+			Find.World.GetComponent<PersonCountWorldComp>().GetPersonCounter(bill);
 
-		public static void RemovePersonCounter(this Map map, Bill_Production bill) =>
-			map.GetComponent<PersonCountMapComp>().RemovePersonCounter(bill);
+		public static void RemovePersonCounter(this Bill_Production bill) =>
+			Find.World.GetComponent<PersonCountWorldComp>().RemovePersonCounter(bill);
 
-		public static void SetPersonCounter(this Map map, Bill_Production bill, QuerySearch search) =>
-			map.GetComponent<PersonCountMapComp>().SetPersonCounter(bill, search);
+		public static void SetPersonCounter(this Bill_Production bill, QuerySearch search) =>
+			Find.World.GetComponent<PersonCountWorldComp>().SetPersonCounter(bill, search);
 	}
 
 
@@ -184,7 +238,7 @@ namespace Everybody_Gets_One
 		{
 			if(bill is Bill_Production billP)
 			{
-				__instance.MapHeld.RemovePersonCounter(billP);
+				billP.RemovePersonCounter();
 			}
 		}
 	}
@@ -198,7 +252,7 @@ namespace Everybody_Gets_One
 			if (__instance is Building_WorkTable workTable)
 				foreach (var bill in workTable.BillStack.Bills)
 					if (bill is Bill_Production billP)
-						__instance.MapHeld.RemovePersonCounter(billP);
+						billP.RemovePersonCounter();
 		}
 	}
 }

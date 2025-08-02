@@ -25,7 +25,7 @@ namespace Everybody_Gets_One
 			{
 				Rect rect = new(x, y, width, 30);
 				if (Widgets.ButtonText(rect, "TD.EditWhoCountsAsAPerson".Translate()))
-					bill.Map.OpenPersonCounter(bill);
+					bill.OpenPersonCounter();
 
 				y += 30 + 6;
 				height -= 30 + 6;

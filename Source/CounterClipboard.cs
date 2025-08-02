@@ -40,7 +40,7 @@ namespace Everybody_Gets_One
 
 		public static void CopyCounterFor(Bill bill)
 		{
-			if (bill is Bill_Production billP && (bill.Map?.HasPersonCounter(billP) ?? false))
+			if (bill is Bill_Production billP && billP.HasPersonCounter())
 				Clipboard = billP.GetPersonCounter().CloneInactive();
 			else
 				Clipboard = null;
@@ -86,7 +86,7 @@ namespace Everybody_Gets_One
 				Map map = billP.Map;
 
 				Log.Message($"Setting Search to Clipboard");
-				map.SetPersonCounter(billP, clip.CloneForUseSingle(map));
+				billP.SetPersonCounter(clip.CloneForUseSingle(map));
 			}
 		}
 	}
