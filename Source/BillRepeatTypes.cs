@@ -142,6 +142,8 @@ namespace Everybody_Gets_One
 			//public static int Max(int a, int b)
 			MethodInfo MaxInfo = AccessTools.Method(typeof(UnityEngine.Mathf), nameof(UnityEngine.Mathf.Max), new Type[] { typeof(int), typeof(int) });
 
+			FieldInfo targetCountAdjustmentInfo = AccessTools.Field(typeof(RecipeDef), nameof(RecipeDef.targetCountAdjustment));
+
 			foreach(var i in instructions)
 			{
 				if(i.Calls(MaxInfo))
@@ -150,6 +152,14 @@ namespace Everybody_Gets_One
 					yield return new CodeInstruction(OpCodes.Ldfld, repeatModeInfo);//this.repeatMode
 
 					yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(DoConfigInterface_Patch), nameof(ActuallyMax)));
+				}
+				else if(i.LoadsField(targetCountAdjustmentInfo))
+				{
+					yield return i;
+					yield return new CodeInstruction(OpCodes.Ldarg_0);//this
+					yield return new CodeInstruction(OpCodes.Ldfld, repeatModeInfo);//this.repeatMode
+					yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(DoConfigInterface_Patch),
+					    nameof(ActualTargetCountAdjustment)));
 				}
 				else
 					yield return i;
@@ -161,6 +171,15 @@ namespace Everybody_Gets_One
 			if (def == RepeatModeDefOf.TD_PersonCount) return b;
 
 			return UnityEngine.Mathf.Max(a, b);
+		}
+
+		public static int ActualTargetCountAdjustment(int targetCountAdjustment, BillRepeatModeDef def)
+		{
+			// For recipes like 'go-juice x 4' and e.g. 'X per person', do not adjust by multiples of 4.
+			if (def == RepeatModeDefOf.TD_PersonCount || def == RepeatModeDefOf.TD_XPerPerson || def == RepeatModeDefOf.TD_WithSurplusIng)
+				return 1;
+
+			return targetCountAdjustment;
 		}
 	}
 
@@ -260,6 +279,10 @@ namespace Everybody_Gets_One
 			FieldInfo targetCountInfo = AccessTools.Field(typeof(Bill_Production), nameof(Bill_Production.targetCount));
 			FieldInfo unpauseWhenYouHaveInfo = AccessTools.Field(typeof(Bill_Production), nameof(Bill_Production.unpauseWhenYouHave));
 
+			FieldInfo targetCountAdjustmentInfo = AccessTools.Field(typeof(RecipeDef), nameof(RecipeDef.targetCountAdjustment));
+			FieldInfo billInfo = AccessTools.Field(typeof(Dialog_BillConfig), nameof(Dialog_BillConfig.bill));
+			FieldInfo repeatModeInfo = AccessTools.Field(typeof(Bill_Production), nameof(Bill_Production.repeatMode));
+
 			int todoTCByValue = 1;//first 2 counts of targetCount is displayed count, not X, so use Extensions.TargetCount instead to count people
 			int todoTCByRef = 1;//but the second is actually ldflda which means the replacement function can't be used and TargetCountRef needs to be created AUGH.
 			int todoUnpause = 1; //first ldflda unpauseWhenYouHave is the displayed count
@@ -277,9 +300,27 @@ namespace Everybody_Gets_One
 				{
 					yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Dialog_BillConfig_Patch), nameof(Dialog_BillConfig_Patch.UnpauseWhenYouHaveRef)));
 				}
+				else if(i.LoadsField(targetCountAdjustmentInfo))
+				{
+					yield return i;
+					yield return new CodeInstruction(OpCodes.Ldarg_0);//this
+					yield return new CodeInstruction(OpCodes.Ldfld, billInfo);//this.bill
+					yield return new CodeInstruction(OpCodes.Ldfld, repeatModeInfo);//this.bill.repeatMode
+					yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Dialog_BillConfig_Patch),
+					    nameof(ActualTargetCountAdjustment)));
+				}
 				else
 					yield return i;
 			}
+		}
+
+		public static int ActualTargetCountAdjustment(int targetCountAdjustment, BillRepeatModeDef def)
+		{
+			// For recipes like 'go-juice x 4' and e.g. 'X per person', do not adjust by multiples of 4.
+			if (def == RepeatModeDefOf.TD_PersonCount || def == RepeatModeDefOf.TD_XPerPerson || def == RepeatModeDefOf.TD_WithSurplusIng)
+				return 1;
+
+			return targetCountAdjustment;
 		}
 
 		//public virtual int CountProducts(Bill_Production bill)
