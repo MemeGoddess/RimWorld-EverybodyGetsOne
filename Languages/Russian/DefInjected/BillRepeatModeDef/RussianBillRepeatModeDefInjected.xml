@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+	
+	<TD_PersonCount.label>По 1 каждому + X</TD_PersonCount.label>
+	<TD_XPerPerson.label>По X каждому колонисту</TD_XPerPerson.label>
+	<TD_WithSurplusIng.label>При избытке ресурса</TD_WithSurplusIng.label>
+	
+</LanguageData>
